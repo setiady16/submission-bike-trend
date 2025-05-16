@@ -8,7 +8,7 @@ Panduan menjalankan dashboard analisis tren penggunaan sepeda.
 
 Pastikan Anda berada di dalam folder `submission/`.
 
-Gunakan salah satu metode berikut untuk menyiapkan environment, kemudian jalankan aplikasi dengan Streamlit.
+Gunakan salah satu metode berikut untuk menyiapkan environment, lalu jalankan aplikasi dengan Streamlit.
 
 ```bash
 # === [ Opsi 1: Menggunakan Anaconda ] ===
@@ -27,9 +27,9 @@ myenv\Scripts\activate
 # Untuk macOS / Linux
 source myenv/bin/activate
 
+# Install dependensi
 pip install -r requirements.txt
 
 # === [ Menjalankan Aplikasi Streamlit ] ===
-
 streamlit run .\dashboard\dashboard.py
 
