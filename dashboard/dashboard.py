@@ -69,7 +69,7 @@ st.metric("🚴 Total Pengguna Setelah Filter:", f"{total_users:,}".replace(",",
 st.write("### Data yang Ditampilkan Setelah Filter")
 st.dataframe(df_filtered.head())
 
-# Binning suhu
+# 📊 1. Jumlah Pengguna Sepeda Berdasarkan Kelompok Suhu
 temp_bins = [0, 8.2, 16.4, 24.6, 32.8, 41]
 temp_labels = ['Sangat Dingin (0-8°C)', 'Dingin (8-16°C)', 'Normal (16-24°C)', 'Hangat (24-32°C)', 'Panas (32-41°C)']
 df_filtered['temp_group'] = pd.cut(df_filtered['temp'] * 41, bins=temp_bins, labels=temp_labels)
@@ -82,10 +82,10 @@ ax.set_ylabel('Jumlah Pengguna Sepeda')
 ax.set_title('Pengaruh Suhu terhadap Penggunaan Sepeda')
 st.pyplot(fig)
 
-# Periksa kolom 'hr'
+# 📊 2. Tren Penggunaan Sepeda Per Jam
 if 'hr' in df.columns:
     hourly_trend = df_filtered.groupby('hr')['cnt'].mean().reset_index()
-    st.subheader("📊 Tren Penggunaan Sepeda Per Jam")
+    st.subheader("🕒 Tren Penggunaan Sepeda Per Jam")
     fig, ax = plt.subplots(figsize=(12, 5))
     sns.lineplot(x='hr', y='cnt', data=hourly_trend, marker='o', color='r', ax=ax)
     ax.set_xlabel('Jam dalam Sehari')
@@ -96,6 +96,33 @@ if 'hr' in df.columns:
     st.pyplot(fig)
 else:
     st.warning("⚠️ Kolom 'hr' tidak tersedia dalam dataset. Tren penggunaan per jam tidak dapat ditampilkan.")
+
+# 📊 3. Pola Musiman: Jumlah Pengguna Sepeda per Bulan
+df_filtered['month'] = df_filtered['dteday'].dt.month
+monthly_usage = df_filtered.groupby('month')['cnt'].sum().reset_index()
+
+st.subheader("📅 Pola Penggunaan Sepeda per Bulan")
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.lineplot(data=monthly_usage, x='month', y='cnt', marker='o', ax=ax)
+ax.set_xticks(range(1, 13))
+ax.set_xlabel("Bulan")
+ax.set_ylabel("Total Penyewaan")
+ax.set_title("Jumlah Penyewaan Sepeda per Bulan")
+ax.grid(True, linestyle='--', alpha=0.5)
+st.pyplot(fig)
+
+# 📊 4. Kontribusi Registered vs Casual
+if 'registered' in df.columns and 'casual' in df.columns:
+    user_type = df_filtered[['registered', 'casual']].sum().reset_index()
+    user_type.columns = ['Tipe Pengguna', 'Total']
+    
+    st.subheader("👤 Perbandingan Pengguna Registered dan Casual")
+    fig, ax = plt.subplots()
+    sns.barplot(x='Tipe Pengguna', y='Total', data=user_type, palette='pastel', ax=ax)
+    ax.set_title("Kontribusi Registered vs Casual")
+    st.pyplot(fig)
+else:
+    st.warning("⚠️ Kolom registered dan casual tidak ditemukan dalam dataset.")
 
 # Footer
 st.markdown("---")
