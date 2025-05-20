@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
+from datetime import date # Import the date object specifically
 
 # --- PATH KONFIGURASI ---
 # Pastikan DATA_PATH mengarah ke lokasi yang benar
@@ -80,22 +81,28 @@ st.title("📊 Dashboard Analisis Penggunaan Sepeda")
 st.sidebar.header("🔍 Filter Data")
 
 # Filter berdasarkan Tanggal (perbaikan .date() untuk st.date_input)
-start_date_min = df['dteday'].min().date()
-end_date_max = df['dteday'].max().date()
+# Pastikan nilai min dan max adalah objek datetime.date
+start_date_min_dt = df['dteday'].min().date()
+end_date_max_dt = df['dteday'].max().date()
+
 selected_date_range = st.sidebar.date_input(
     "Pilih Rentang Tanggal",
-    [start_date_min, end_date_max], # Nilai default
-    min_value=start_date_min,
-    max_value=end_date_max
+    [start_date_min_dt, end_date_max_dt], # Nilai default harus list of datetime.date
+    min_value=start_date_min_dt, # min_value harus datetime.date
+    max_value=end_date_max_dt    # max_value harus datetime.date
 )
 
 # Pastikan selected_date_range memiliki 2 elemen
 if len(selected_date_range) == 2:
     start_date_filter = pd.to_datetime(selected_date_range[0])
     end_date_filter = pd.to_datetime(selected_date_range[1])
-else: # Handle case where only one date is selected (e.g., initial load or single date picked)
+elif len(selected_date_range) == 1: # Handle case where only one date is selected
     start_date_filter = pd.to_datetime(selected_date_range[0])
     end_date_filter = pd.to_datetime(selected_date_range[0]) # Treat as single day if only one selected
+else: # Fallback, should not happen with date_input
+    start_date_filter = df['dteday'].min()
+    end_date_filter = df['dteday'].max()
+
 
 # Mapping untuk label yang lebih mudah dibaca
 season_mapping = {1: 'Musim Semi', 2: 'Musim Panas', 3: 'Musim Gugur', 4: 'Musim Dingin'}
