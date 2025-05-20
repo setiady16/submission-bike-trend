@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from datetime import date  # Tambahkan import date
+from datetime import date
 
 # Load dataset
 @st.cache_data
@@ -13,47 +13,37 @@ def load_data():
 
 df = load_data()
 
-# Judul Dashboard
+# Konversi kolom tanggal
+df['dteday'] = pd.to_datetime(df['dteday'])
+df = df[df['dteday'].dt.year < 2024]  # Hindari data 2024
+
+# Judul
 st.title("📊 Bike Sharing Dashboard")
 
-# Sidebar untuk Filter Data
+# Sidebar Filter
 st.sidebar.header("🔍 Filter Data")
 
-# Filter berdasarkan Tanggal
-df['dteday'] = pd.to_datetime(df['dteday'])
-
-# Gunakan tipe data date untuk st.date_input
 start_date_min = df['dteday'].min().date()
 start_date_max = df['dteday'].max().date()
 
 selected_date = st.sidebar.date_input(
     "Pilih Rentang Tanggal",
-    value=(start_date_min, start_date_max),  # Set tuple sebagai default value
+    value=(start_date_min, start_date_max),
     min_value=start_date_min,
     max_value=start_date_max,
 )
 
-# Filter berdasarkan Musim (Season)
 season_mapping = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
 df['season_label'] = df['season'].map(season_mapping)
 selected_season = st.sidebar.multiselect("Pilih Musim", df['season_label'].unique(), default=df['season_label'].unique())
 
-# Filter berdasarkan Kondisi Cuaca (Weathersit)
 weather_mapping = {1: "Cerah / Berawan", 2: "Berkabut / Mendung", 3: "Hujan Ringan / Salju Ringan", 4: "Hujan Lebat / Badai"}
 df['weathersit_label'] = df['weathersit'].map(weather_mapping)
 selected_weather = st.sidebar.multiselect("Pilih Kondisi Cuaca", df['weathersit_label'].unique(), default=df['weathersit_label'].unique())
 
 # Terapkan Filter
-# Pastikan selected_date sudah diubah ke Timestamp jika diperlukan untuk filtering
-if len(selected_date) == 2:
-    start_date_filter = pd.to_datetime(selected_date[0])
-    end_date_filter = pd.to_datetime(selected_date[1])
-elif len(selected_date) == 1:
-    start_date_filter = pd.to_datetime(selected_date[0])
-    end_date_filter = pd.to_datetime(selected_date[0])
-else:  # Handle kasus lain jika ada
-    start_date_filter = df['dteday'].min()
-    end_date_filter = df['dteday'].max()
+start_date_filter = pd.to_datetime(selected_date[0])
+end_date_filter = pd.to_datetime(selected_date[-1])
 
 df_filtered = df[
     (df['dteday'] >= start_date_filter) &
@@ -62,80 +52,71 @@ df_filtered = df[
     (df['weathersit_label'].isin(selected_weather))
 ]
 
-# Total pengguna setelah filter
-total_users = df_filtered['cnt'].sum()
-st.metric("🚴 Total Pengguna Setelah Filter:", f"{total_users:,}".replace(",", "."))
+# Total Pengguna
+st.metric("🚴 Total Pengguna Setelah Filter:", f"{df_filtered['cnt'].sum():,}".replace(",", "."))
 
-# Tampilkan data yang telah difilter
-st.write("### Data yang Ditampilkan Setelah Filter")
-st.dataframe(df_filtered.head())
+# Visualisasi 1: Tren per jam
+hourly_trend = df_filtered.groupby('hr')['cnt'].mean().reset_index()
+st.subheader("📈 Rata-rata Jumlah Pengguna Per Jam")
+fig, ax = plt.subplots(figsize=(12, 5))
+sns.lineplot(x='hr', y='cnt', data=hourly_trend, marker='o', color='dodgerblue', ax=ax)
+ax.set_xlabel("Jam")
+ax.set_ylabel("Rata-rata Pengguna")
+ax.set_title("Rata-rata Pengguna Sepeda Setiap Jam")
+ax.grid(True, linestyle='--', alpha=0.6)
+st.pyplot(fig)
 
-# **1. Diagram Clustering Manual Grouping (Binning) Suhu vs Jumlah Pengguna**
+# Visualisasi 2: Tren per jam berdasarkan cuaca
+hourly_weather = df_filtered.groupby(['hr', 'weathersit_label'])['cnt'].mean().reset_index()
+st.subheader("🌤️ Rata-rata Penggunaan Sepeda per Jam berdasarkan Cuaca")
+fig, ax = plt.subplots(figsize=(12, 6))
+sns.lineplot(data=hourly_weather, x="hr", y="cnt", hue="weathersit_label", marker='o', ax=ax)
+ax.set_xlabel("Jam")
+ax.set_ylabel("Rata-rata Pengguna")
+ax.set_title("Tren Penggunaan Sepeda per Jam & Cuaca")
+ax.legend(title="Cuaca")
+ax.grid(True, linestyle='--', alpha=0.6)
+st.pyplot(fig)
+
+# Visualisasi 3: Casual vs Registered
+grouped_data = df_filtered.groupby('workingday')[['casual', 'registered']].sum().reset_index()
+st.subheader("👥 Pengguna Casual vs Registered (Hari Kerja vs Libur)")
+fig, ax = plt.subplots(figsize=(8, 6))
+x = np.arange(len(grouped_data))
+width = 0.5
+ax.bar(x, grouped_data['casual'], width, label='Casual', color='skyblue')
+ax.bar(x, grouped_data['registered'], width, bottom=grouped_data['casual'], label='Registered', color='salmon')
+ax.set_xticks(x)
+ax.set_xticklabels(grouped_data['workingday'].map({0: 'Hari Libur', 1: 'Hari Kerja'}))
+ax.set_ylabel("Total Pengguna")
+ax.set_title("Total Pengguna Berdasarkan Hari Kerja vs Libur")
+ax.legend()
+st.pyplot(fig)
+
+# Visualisasi 4: Pengaruh Suhu
 temp_bins = [0, 8.2, 16.4, 24.6, 32.8, 41]
 temp_labels = ['Sangat Dingin (0-8°C)', 'Dingin (8-16°C)', 'Normal (16-24°C)', 'Hangat (24-32°C)', 'Panas (32-41°C)']
 df_filtered['temp_group'] = pd.cut(df_filtered['temp'] * 41, bins=temp_bins, labels=temp_labels)
 
-st.subheader("📊 Pengaruh Suhu terhadap Penggunaan Sepeda")  # Perbaikan Judul
+st.subheader("🌡️ Pengaruh Suhu terhadap Penggunaan Sepeda")
 fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(x='temp_group', y='cnt', data=df_filtered, estimator=sum, hue='temp_group', palette='coolwarm', ax=ax)
-ax.set_xlabel('Kelompok Suhu')  # Perbaikan Label
-ax.set_ylabel('Jumlah Pengguna Sepeda')  # Perbaikan Label
-ax.set_title('Jumlah Pengguna Sepeda Berdasarkan Kelompok Suhu')  # Perbaikan Judul
+sns.barplot(x='temp_group', y='cnt', data=df_filtered, estimator=sum, palette='YlOrRd', ax=ax)
+ax.set_xlabel("Kelompok Suhu")
+ax.set_ylabel("Jumlah Pengguna")
+ax.set_title("Pengaruh Suhu terhadap Jumlah Pengguna")
 st.pyplot(fig)
 
-# **2. Diagram Clustering Manual Grouping (Binning) Kelembaban**
+# Visualisasi 5: Pengaruh Kelembaban
 hum_bins = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
 hum_labels = ['Sangat Kering', 'Kering', 'Normal', 'Lembab', 'Sangat Lembab']
 df_filtered['hum_group'] = pd.cut(df_filtered['hum'], bins=hum_bins, labels=hum_labels)
 
-st.subheader("📊 Pengaruh Kelembaban terhadap Penggunaan Sepeda")  # Perbaikan Judul
+st.subheader("💧 Pengaruh Kelembaban terhadap Penggunaan Sepeda")
 fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(x='hum_group', y='cnt', data=df_filtered, estimator=sum, hue='hum_group', palette='coolwarm', ax=ax)
-ax.set_xlabel('Kelompok Kelembaban')  # Perbaikan Label
-ax.set_ylabel('Jumlah Pengguna Sepeda')  # Perbaikan Label
-ax.set_title('Jumlah Pengguna Sepeda Berdasarkan Kelompok Kelembaban')  # Perbaikan Judul
-st.pyplot(fig)
-
-# **3. Diagram Total Pengguna Casual dan Registered Berdasarkan Hari Kerja vs Hari Libur**
-grouped_data = df_filtered.groupby('workingday')[['casual', 'registered']].sum()
-# grouped_data.index = ['Hari Libur', 'Hari Kerja'] # Ini yang menyebabkan error, panjang index tidak sama dengan jumlah group.
-grouped_data = grouped_data.reset_index()  # Perbaikan
-st.subheader("📊 Perbandingan Pengguna Sepeda: Casual vs Registered")  # Perbaikan Judul
-fig, ax = plt.subplots(figsize=(8, 6))
-x = np.arange(len(grouped_data))
-width = 0.5
-bars1 = ax.bar(x, grouped_data['casual'], color='skyblue', label='Casual', width=width)
-bars2 = ax.bar(x, grouped_data['registered'], color='salmon', bottom=grouped_data['casual'], label='Registered', width=width)
-ax.set_xticks(x)
-ax.set_xticklabels(grouped_data['workingday'].map({0: 'Hari Libur', 1: 'Hari Kerja'}))  # Perbaikan
-ax.set_ylabel('Total Jumlah Pengguna')
-ax.set_title('Total Pengguna Casual dan Registered Berdasarkan Hari Kerja vs Hari Libur')  # Perbaikan Judul
-ax.legend()
-st.pyplot(fig)
-
-# **4. Diagram Rata-rata Jumlah Pengguna Per Jam**
-hourly_trend = df_filtered.groupby('hr')['cnt'].mean().reset_index()
-st.subheader("📊 Tren Penggunaan Sepeda Per Jam")  # Perbaikan Judul
-fig, ax = plt.subplots(figsize=(12, 5))
-sns.lineplot(x='hr', y='cnt', data=hourly_trend, marker='o', color='r', ax=ax)
-ax.set_xlabel('Jam dalam Sehari')
-ax.set_ylabel('Rata-rata Jumlah Pengguna')
-ax.set_title('Tren Penggunaan Sepeda Per Jam')  # Perbaikan Judul
-ax.set_xticks(range(0, 24))
-ax.grid(True, linestyle='--', alpha=0.6)
-st.pyplot(fig)
-
-# **5. Diagram Rata-rata Pengguna yang dikelompokkan berdasarkan Jam dan Kondisi Cuaca**
-hourly_weather = df_filtered.groupby(['hr', 'weathersit_label'])['cnt'].mean().reset_index()
-st.subheader("📊 Rata-rata Penggunaan Sepeda per Jam Berdasarkan Kondisi Cuaca")  # Perbaikan Judul
-fig, ax = plt.subplots(figsize=(12, 6))
-sns.lineplot(x='hr', y='cnt', data=hourly_weather, hue='weathersit_label', marker='o', palette='coolwarm', ax=ax)
-ax.set_xlabel('Jam dalam Sehari')
-ax.set_ylabel('Rata-rata Jumlah Pengguna')
-ax.set_title('Penggunaan Sepeda Berdasarkan Kondisi Cuaca')  # Perbaikan Judul
-ax.set_xticks(range(0, 24))
-ax.legend(title='Kondisi Cuaca')
-ax.grid(True, linestyle='--', alpha=0.6)
+sns.barplot(x='hum_group', y='cnt', data=df_filtered, estimator=sum, palette='BuGn', ax=ax)
+ax.set_xlabel("Kelompok Kelembaban")
+ax.set_ylabel("Jumlah Pengguna")
+ax.set_title("Pengaruh Kelembaban terhadap Jumlah Pengguna")
 st.pyplot(fig)
 
 st.markdown("---")
