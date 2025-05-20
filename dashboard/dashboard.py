@@ -4,17 +4,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
-from datetime import date # Import the date object specifically
+from datetime import date # Penting: Import the date object specifically
 
 # --- PATH KONFIGURASI ---
-# Pastikan DATA_PATH mengarah ke lokasi yang benar
-# Jika main_data.csv berada di folder yang sama dengan dashboard.py, gunakan "main_data.csv"
-# Jika main_data.csv ada di folder 'data' di sebelah dashboard.py, gunakan "data/main_data.csv"
-DATA_PATH = "dashboard/main_data.csv" # Sesuaikan ini jika lokasi file berbeda
+# Pastikan DATA_PATH mengarah ke lokasi yang benar.
+# Jika file main_data.csv berada di dalam folder 'dashboard' yang sama dengan dashboard.py:
+DATA_PATH = "dashboard/main_data.csv"
+# Jika file main_data.csv berada di folder yang sama dengan dashboard.py:
+# DATA_PATH = "main_data.csv"
+# Jika file main_data.csv berada di folder 'data' di root project, dan dashboard.py di folder 'dashboard':
+# DATA_PATH = "../data/main_data.csv" # Perlu disesuaikan dengan struktur folder Anda
 
 # --- FUNGSI LOAD & CLEAN DATA ---
 @st.cache_data
 def load_data():
+    """
+    Memuat dataset dari path yang ditentukan.
+    Menampilkan error dan menghentikan aplikasi jika file tidak ditemukan.
+    """
     if not os.path.exists(DATA_PATH):
         st.error(f"❌ File tidak ditemukan: `{DATA_PATH}`. Pastikan path dan nama file benar.")
         st.stop()
@@ -22,14 +29,19 @@ def load_data():
     return df
 
 def clean_data(df_raw):
+    """
+    Melakukan pembersihan data pada DataFrame mentah.
+    Meliputi konversi tipe data, penanganan duplikat, dan filter tahun.
+    (Tambahkan logika penanganan missing values dan outliers sesuai notebook Anda)
+    """
     df_cleaned = df_raw.copy()
 
-    # 1. Konversi dteday ke datetime
+    # 1. Konversi 'dteday' ke tipe datetime
     df_cleaned['dteday'] = pd.to_datetime(df_cleaned['dteday'])
 
-    # 2. Cek dan filter tahun 2024 (jika ada)
-    # Asumsi dataset bike sharing berakhir di 2012
-    # Jika dataset Anda memiliki rentang tahun yang berbeda, sesuaikan angka 2012 ini.
+    # 2. Cek dan filter data tahun yang tidak relevan (misal 2024 jika dataset seharusnya sampai 2012)
+    # Dataset bike sharing yang umum digunakan biasanya berakhir di 2012.
+    # Sesuaikan angka 2012 ini jika rentang tahun dataset Anda berbeda.
     if df_cleaned['dteday'].dt.year.max() > 2012:
         st.warning(f"⚠️ Dataset mengandung data tahun {df_cleaned['dteday'].dt.year.max()} atau lebih baru. Memfilter data hingga tahun 2012 sesuai dataset asli.")
         df_cleaned = df_cleaned[df_cleaned['dteday'].dt.year <= 2012]
@@ -41,13 +53,13 @@ def clean_data(df_raw):
         st.info(f"✅ Ditemukan dan dihapus {initial_rows - len(df_cleaned)} data duplikat.")
 
     # 4. Handle Missing Values (Tambahkan logika ini sesuai notebook Anda jika ada)
-    # Contoh:
     # if df_cleaned.isnull().sum().any():
     #     st.info("ℹ️ Terdapat missing values. Menangani missing values...")
-    #     df_cleaned.dropna(inplace=True) # Atau imputasi dengan median/mean
+    #     # Contoh: df_cleaned.dropna(inplace=True)
+    #     # Contoh: df_cleaned['some_column'].fillna(df_cleaned['some_column'].median(), inplace=True)
 
-    # 5. Handle Outliers (Implementasikan capping jika Anda memutuskan ini di notebook Anda)
-    # Contoh untuk capping windspeed:
+    # 5. Handle Outliers (Implementasikan capping/removal jika Anda memutuskan ini di notebook Anda)
+    # Contoh untuk capping 'windspeed' jika Anda melakukannya di notebook:
     # if 'windspeed' in df_cleaned.columns:
     #     Q1_windspeed = df_cleaned['windspeed'].quantile(0.25)
     #     Q3_windspeed = df_cleaned['windspeed'].quantile(0.75)
@@ -65,12 +77,12 @@ def clean_data(df_raw):
 df_raw = load_data()
 df = clean_data(df_raw.copy()) # Panggil fungsi cleaning
 
-# Cek kolom yang dibutuhkan setelah cleaning
-# Menambahkan 'hr' dan 'weekday' karena digunakan dalam visualisasi
+# Cek kolom yang dibutuhkan setelah cleaning.
+# Menambahkan 'hr' dan 'weekday' karena sering digunakan dalam analisis bike sharing
 required_columns = ['dteday', 'season', 'weathersit', 'cnt', 'temp', 'registered', 'casual', 'hr', 'weekday']
 missing_columns = [col for col in required_columns if col not in df.columns]
 if missing_columns:
-    st.error(f"❌ Kolom berikut tidak ditemukan dalam data setelah pembersihan: {', '.join(missing_columns)}. Harap periksa dataset Anda.")
+    st.error(f"❌ Kolom berikut tidak ditemukan dalam data setelah pembersihan: {', '.join(missing_columns)}. Harap periksa dataset Anda atau sesuaikan `required_columns`.")
     st.stop()
 
 
@@ -80,31 +92,30 @@ st.title("📊 Dashboard Analisis Penggunaan Sepeda")
 # --- SIDEBAR UNTUK FILTER DATA ---
 st.sidebar.header("🔍 Filter Data")
 
-# Filter berdasarkan Tanggal (perbaikan .date() untuk st.date_input)
-# Pastikan nilai min dan max adalah objek datetime.date
+# Filter berdasarkan Tanggal (Menggunakan datetime.date untuk kompatibilitas st.date_input)
+# Mendapatkan nilai tanggal minimum dan maksimum dari DataFrame yang sudah bersih
 start_date_min_dt = df['dteday'].min().date()
 end_date_max_dt = df['dteday'].max().date()
 
 selected_date_range = st.sidebar.date_input(
     "Pilih Rentang Tanggal",
-    [start_date_min_dt, end_date_max_dt], # Nilai default harus list of datetime.date
-    min_value=start_date_min_dt, # min_value harus datetime.date
-    max_value=end_date_max_dt    # max_value harus datetime.date
+    [start_date_min_dt, end_date_max_dt], # Default value as a list of datetime.date objects
+    min_value=start_date_min_dt,          # min_value as a datetime.date object
+    max_value=end_date_max_dt             # max_value as a datetime.date object
 )
 
-# Pastikan selected_date_range memiliki 2 elemen
+# Konversi tanggal yang dipilih dari date_input kembali ke Timestamp untuk filtering DataFrame
 if len(selected_date_range) == 2:
     start_date_filter = pd.to_datetime(selected_date_range[0])
     end_date_filter = pd.to_datetime(selected_date_range[1])
-elif len(selected_date_range) == 1: # Handle case where only one date is selected
+elif len(selected_date_range) == 1: # Untuk kasus jika user hanya memilih 1 tanggal
     start_date_filter = pd.to_datetime(selected_date_range[0])
-    end_date_filter = pd.to_datetime(selected_date_range[0]) # Treat as single day if only one selected
-else: # Fallback, should not happen with date_input
+    end_date_filter = pd.to_datetime(selected_date_range[0])
+else: # Fallback, jika ada masalah pada `selected_date_range` (seharusnya tidak terjadi)
     start_date_filter = df['dteday'].min()
     end_date_filter = df['dteday'].max()
 
-
-# Mapping untuk label yang lebih mudah dibaca
+# Mapping untuk label yang lebih mudah dibaca pada filter dan visualisasi
 season_mapping = {1: 'Musim Semi', 2: 'Musim Panas', 3: 'Musim Gugur', 4: 'Musim Dingin'}
 df['season_label'] = df['season'].map(season_mapping)
 selected_season = st.sidebar.multiselect(
@@ -115,8 +126,19 @@ weather_mapping = {
     1: "Cerah / Berawan",
     2: "Berkabut / Mendung",
     3: "Hujan Ringan / Salju Ringan",
-    4: "Hujan Lebat / Badai"
+    3: "Hujan Ringan / Salju Ringan", # Duplikasi, perbaiki jika ada nilai 4 yang berbeda
+    4: "Hujan Lebat / Badai" # Pastikan ini sesuai dengan data Anda
 }
+# Perbaikan: mapping key 3 sudah ada, jadi pastikan tidak ada duplikasi atau perbaiki nilai jika memang ada 4 kondisi.
+# Jika ada nilai 4 di weathersit, pastikan weathersit_label untuk 3 dan 4 berbeda.
+# Contoh:
+# weather_mapping = {
+#     1: "Cerah / Berawan",
+#     2: "Berkabut / Mendung",
+#     3: "Hujan Ringan / Salju Ringan",
+#     4: "Hujan Lebat / Badai"
+# }
+
 df['weathersit_label'] = df['weathersit'].map(weather_mapping)
 selected_weather = st.sidebar.multiselect(
     "Pilih Kondisi Cuaca", df['weathersit_label'].unique(), default=df['weathersit_label'].unique()
@@ -128,7 +150,7 @@ weekday_mapping = {
 df['weekday_label'] = df['weekday'].map(weekday_mapping)
 
 
-# --- TERAPKAN FILTER ---
+# --- TERAPKAN FILTER PADA DATAFRAME ---
 df_filtered = df[
     (df['dteday'] >= start_date_filter) &
     (df['dteday'] <= end_date_filter) &
@@ -137,6 +159,7 @@ df_filtered = df[
 ]
 
 # --- METRIC UTAMA ---
+# Menampilkan total pengguna setelah filter
 total_users = df_filtered['cnt'].sum()
 total_registered = df_filtered['registered'].sum()
 total_casual = df_filtered['casual'].sum()
@@ -157,8 +180,9 @@ st.markdown("---")
 # Pertanyaan Bisnis 1: Bagaimana pola penggunaan sepeda (total, terdaftar, dan kasual) bervariasi berdasarkan musim dan kondisi cuaca sepanjang tahun?
 st.header("1. Pola Penggunaan Sepeda Berdasarkan Musim dan Cuaca")
 
-# 1.1 Tren Penyewaan Sepeda per Bulan (Total, Registered, Casual) - untuk pola musiman
+# 1.1 Tren Penyewaan Sepeda per Bulan (Total, Registered, Casual)
 st.subheader("1.1 Tren Penyewaan Sepeda per Bulan")
+# Pastikan 'month' kolom sudah ada
 df_filtered['month'] = df_filtered['dteday'].dt.month
 monthly_usage_type = df_filtered.groupby('month')[['cnt', 'registered', 'casual']].sum().reset_index()
 
@@ -186,7 +210,6 @@ sns.lineplot(data=yearly_usage, x='year', y='cnt', label='Total', marker='o', ax
 sns.lineplot(data=yearly_usage, x='year', y='registered', label='Terdaftar', marker='x', ax=ax_yearly_trend)
 sns.lineplot(data=yearly_usage, x='year', y='casual', label='Kasual', marker='s', ax=ax_yearly_trend)
 
-# Hanya tampilkan tahun yang ada di data
 ax_yearly_trend.set_xticks(yearly_usage['year'].unique())
 ax_yearly_trend.set_xlabel("Tahun")
 ax_yearly_trend.set_ylabel("Total Penyewaan")
@@ -218,8 +241,8 @@ st.subheader("1.4 Rata-rata Penggunaan Sepeda Berdasarkan Kondisi Cuaca")
 weather_counts = df_filtered.groupby('weathersit_label')[['cnt', 'registered', 'casual']].mean().reset_index()
 
 # Urutkan berdasarkan tingkat keparahan cuaca (lebih baik ke lebih buruk)
-ordered_weather = ["Cerah / Berawan", "Berkabut / Mendung", "Hujan Ringan / Salju Ringan", "Hujan Lebat / Badai"]
-weather_counts['weathersit_label'] = pd.Categorical(weather_counts['weathersit_label'], categories=ordered_weather, ordered=True)
+ordered_weather_for_plot = ["Cerah / Berawan", "Berkabut / Mendung", "Hujan Ringan / Salju Ringan", "Hujan Lebat / Badai"]
+weather_counts['weathersit_label'] = pd.Categorical(weather_counts['weathersit_label'], categories=ordered_weather_for_plot, ordered=True)
 weather_counts = weather_counts.sort_values('weathersit_label')
 
 fig_weather_usage, ax_weather_usage = plt.subplots(figsize=(10, 5))
@@ -275,7 +298,7 @@ user_type_by_weather = df_filtered.groupby('weathersit_label')[['registered', 'c
 user_type_by_weather_melted = user_type_by_weather.melt(id_vars='weathersit_label', var_name='User Type', value_name='Total Rides')
 
 # Urutkan kategori cuaca
-user_type_by_weather_melted['weathersit_label'] = pd.Categorical(user_type_by_weather_melted['weathersit_label'], categories=ordered_weather, ordered=True)
+user_type_by_weather_melted['weathersit_label'] = pd.Categorical(user_type_by_weather_melted['weathersit_label'], categories=ordered_weather_for_plot, ordered=True)
 user_type_by_weather_melted = user_type_by_weather_melted.sort_values('weathersit_label')
 
 fig_weather_prop, ax_weather_prop = plt.subplots(figsize=(10, 5))
