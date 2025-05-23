@@ -40,7 +40,7 @@ start_date_max = df['dteday'].max().date()
 
 selected_date = st.sidebar.date_input(
     "Pilih Rentang Tanggal",
-    value=(start_date_min, start_date_max),
+    value=(start_date_min, start_date_max), # Nilai default sama dengan rentang data penuh 2011-2012
     min_value=start_date_min,
     max_value=start_date_max,
 )
@@ -76,7 +76,7 @@ fig, ax = plt.subplots(figsize=(14, 6)) # Ukuran figure disesuaikan
 
 # Menggunakan palette 'rocket' dan alpha untuk area shaded agar mirip gambar
 sns.lineplot(data=df_agg_monthly_notebook, x='year_month', y='cnt', hue='season', marker='o', ax=ax,
-             errorbar=('ci', 95), alpha=0.5, palette='rocket') # Mengembalikan palette dan alpha
+             errorbar=('ci', 95), alpha=0.5, palette='rocket')
 
 ax.set_title("Tren Penyewaan Sepeda Bulanan Total berdasarkan Musim")
 ax.set_xlabel("year_month") # Sesuai gambar
@@ -93,10 +93,11 @@ ax.grid(False) # Sesuai gambar, tidak ada grid
 # Batasi Y-axis agar terlihat lebih mirip
 ax.set_ylim(bottom=-10000, top=165000) # Sesuaikan bottom agar ada sedikit ruang di bawah 0
 
-plt.tight_layout() # Tambahkan ini untuk meniru tight_layout() dari notebook
+plt.tight_layout() # Untuk layout yang rapi
 st.pyplot(fig)
 
-# 2. Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca (SESUAI image_61bf31.png dan image_61cd7b.png)
+
+# 2. Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca (SESUAI image_600001.png, image_5fffe2.png, image_61bf31.png, image_61cd7b.png)
 st.subheader("🌦️ Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca")
 fig, ax = plt.subplots(figsize=(10, 6))
 # Menggunakan warna biru default Seaborn/Matplotlib agar mirip gambar
@@ -109,6 +110,7 @@ ax.grid(False) # Sesuai gambar, tidak ada grid
 ax.set_ylim(bottom=-100, top=9000) # Sesuaikan jika data max berbeda
 plt.tight_layout()
 st.pyplot(fig)
+
 
 # 3. Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari (SESUAI image_61cab4.png)
 st.subheader("👥 Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari")
