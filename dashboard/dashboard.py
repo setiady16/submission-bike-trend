@@ -8,7 +8,7 @@ from datetime import date
 # Load dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("dashboard/main_data.csv")
+    df = pd.read_csv("dashboard/data.csv")
     return df
 
 df = load_data()
