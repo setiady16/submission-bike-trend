@@ -119,5 +119,30 @@ ax.set_ylabel("Jumlah Pengguna")
 ax.set_title("Pengaruh Kelembaban terhadap Jumlah Pengguna")
 st.pyplot(fig)
 
+# Visualisasi 6: Proporsi Casual
+st.subheader("📊 Proporsi Pengguna Kasual per Kondisi Cuaca dan Jenis Hari")
+df_filtered['day_type'] = df_filtered['workingday'].map({0: 'Akhir Pekan', 1: 'Hari Kerja'})
+df_grouped_pct = df_filtered.groupby(['weathersit', 'day_type'])[['casual', 'registered']].sum().reset_index()
+df_grouped_pct['total'] = df_grouped_pct['casual'] + df_grouped_pct['registered']
+df_grouped_pct['casual_pct'] = (df_grouped_pct['casual'] / df_grouped_pct['total']) * 100
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.barplot(data=df_grouped_pct, x='weathersit', y='casual_pct', hue='day_type', palette='Blues', ax=ax)
+ax.set_xlabel('Kondisi Cuaca (weathersit)')
+ax.set_ylabel('Proporsi Penyewaan Kasual (%)')
+ax.set_title('Rata-rata Proporsi Penyewaan Kasual')
+ax.legend(title='Jenis Hari')
+st.pyplot(fig)
+
+# Visualisasi 7: Proporsi Registered
+st.subheader("📊 Proporsi Pengguna Terdaftar per Kondisi Cuaca dan Jenis Hari")
+df_grouped_pct['registered_pct'] = (df_grouped_pct['registered'] / df_grouped_pct['total']) * 100
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.barplot(data=df_grouped_pct, x='weathersit', y='registered_pct', hue='day_type', palette='Oranges', ax=ax)
+ax.set_xlabel('Kondisi Cuaca (weathersit)')
+ax.set_ylabel('Proporsi Penyewaan Terdaftar (%)')
+ax.set_title('Rata-rata Proporsi Penyewaan Terdaftar')
+ax.legend(title='Jenis Hari')
+st.pyplot(fig)
+
 st.markdown("---")
 st.markdown("🚲 **Bike Sharing Dashboard** | Dibuat dengan ❤️ oleh Data Analyst")
