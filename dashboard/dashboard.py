@@ -8,6 +8,7 @@ from datetime import date
 # Load dataset
 @st.cache_data
 def load_data():
+    # Pastikan path ini benar di komputermu.
     df = pd.read_csv("C:/Users/ADVAN/OneDrive/submission/submission/dashboard/main_data.csv")
     return df
 
@@ -15,7 +16,8 @@ df = load_data()
 
 # Konversi kolom tanggal
 df['dteday'] = pd.to_datetime(df['dteday'])
-df = df[df['dteday'].dt.year < 2013] # Batasi data jika tidak lengkap di 2013/2014
+# Batasi data hanya sampai akhir 2012 sesuai dengan rentang data di gambar-gambar referensi
+df = df[df['dteday'].dt.year < 2013]
 
 
 # --- DATA PREPROCESSING UNTUK DASHBOARD ---
@@ -59,14 +61,11 @@ df_filtered = df[
 
 st.metric("🚴 Total Pengguna Setelah Filter:", f"{df_filtered['cnt'].sum():,}".replace(",", "."))
 
-# --- VISUALISASI YANG DIMINTA AGAR MIRIP KODE NOTEBOOK ---
-# 1. Tren Penyewaan Sepeda Bulanan Total berdasarkan Musim (SESUAI image_61cdb6.png dan kode notebook)
+# --- 4 VISUALISASI YANG KAMU INGINKAN ---
+
+# 1. Tren Penyewaan Sepeda Bulanan Total berdasarkan Musim (SESUAI image_61cdb6.png dan image_605e32.png)
 st.subheader("🗓️ Tren Penyewaan Sepeda Bulanan Total berdasarkan Musim")
 
-# Agregasi bulanan untuk total, registered, casual (sesuaikan dengan kode notebook)
-# Kode notebookmu melakukan groupby berdasarkan ['year_month', 'season', 'weathersit']
-# Namun, visualisasi yang ingin kamu tiru (image_61cdb6.png) hanya menggunakan 'year_month' dan 'season'.
-# Jadi kita akan mengikuti agregasi yang sesuai dengan visualisasi yang diinginkan.
 df_agg_monthly_notebook = df_filtered.groupby(['year_month', 'season'])[['cnt']].sum().reset_index()
 
 # Pastikan urutan bulan benar
@@ -75,72 +74,77 @@ df_agg_monthly_notebook = df_agg_monthly_notebook.sort_values('year_month_dt')
 
 fig, ax = plt.subplots(figsize=(14, 6)) # Ukuran figure disesuaikan
 
-# Menggunakan parameter yang mirip dengan kode notebook
-# Hue='season' (angka) dan marker='o' sudah sama.
-# errorbar=('ci', 95) untuk area shaded.
+# Menggunakan palette 'rocket' dan alpha untuk area shaded agar mirip gambar
 sns.lineplot(data=df_agg_monthly_notebook, x='year_month', y='cnt', hue='season', marker='o', ax=ax,
-             errorbar=('ci', 95)) # Hapus palette kustom untuk menggunakan default Seaborn
+             errorbar=('ci', 95), alpha=0.5, palette='rocket') # Mengembalikan palette dan alpha
 
 ax.set_title("Tren Penyewaan Sepeda Bulanan Total berdasarkan Musim")
 ax.set_xlabel("year_month") # Sesuai gambar
 ax.set_ylabel("Jumlah Penyewaan Sepeda")
 
 # Mengatur x-tick untuk tampilan yang lebih rapi seperti gambar
-xticks = df_agg_monthly_notebook['year_month'].unique()
-ax.set_xticks(xticks[::2]) # Tampilkan setiap 2 bulan
-ax.tick_params(axis='x', rotation=45)
+xticks_labels = df_agg_monthly_notebook['year_month'].unique()
+ax.set_xticks(xticks_labels[::2]) # Tampilkan setiap 2 bulan
+ax.set_xticklabels(xticks_labels[::2], rotation=45, ha='right') # Rotate dan align right
 
 ax.legend(title='season', loc='upper right') # Posisi legenda
 ax.grid(False) # Sesuai gambar, tidak ada grid
 
-# Batasi Y-axis agar terlihat lebih mirip (tetap dipertahankan dari versi sebelumnya)
-ax.set_ylim(bottom=0, top=160000)
+# Batasi Y-axis agar terlihat lebih mirip
+ax.set_ylim(bottom=-10000, top=165000) # Sesuaikan bottom agar ada sedikit ruang di bawah 0
 
 plt.tight_layout() # Tambahkan ini untuk meniru tight_layout() dari notebook
-
 st.pyplot(fig)
 
-# 2. Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca
+# 2. Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca (SESUAI image_61bf31.png dan image_61cd7b.png)
 st.subheader("🌦️ Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca")
 fig, ax = plt.subplots(figsize=(10, 6))
-sns.boxplot(data=df_filtered, x='weathersit', y='cnt', ax=ax, color='tab:blue')
+# Menggunakan warna biru default Seaborn/Matplotlib agar mirip gambar
+sns.boxplot(data=df_filtered, x='weathersit', y='cnt', ax=ax, color='#1f77b4') # Warna 'tab:blue' atau '#1f77b4' sama
+
 ax.set_title("Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca")
-ax.set_xlabel("Kondisi Cuaca (Weathersit)")
+ax.set_xlabel("Kondisi Cuaca (Weathersit)") # Sesuai gambar
 ax.set_ylabel("Jumlah Penyewaan Sepeda Harian")
-ax.grid(False)
-ax.set_ylim(bottom=0, top=9000)
+ax.grid(False) # Sesuai gambar, tidak ada grid
+ax.set_ylim(bottom=-100, top=9000) # Sesuaikan jika data max berbeda
+plt.tight_layout()
 st.pyplot(fig)
 
-# 3. Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari
+# 3. Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari (SESUAI image_61cab4.png)
 st.subheader("👥 Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari")
 df_grouped_pct_prop = df_filtered.groupby(['weathersit', 'day_type'])[['casual', 'registered']].sum().reset_index()
 df_grouped_pct_prop['total'] = df_grouped_pct_prop['casual'] + df_grouped_pct_prop['registered']
 df_grouped_pct_prop['casual_pct'] = (df_grouped_pct_prop['casual'] / df_grouped_pct_prop['total']) * 100
 
 fig, ax = plt.subplots(figsize=(10, 6))
+# Palette 'tab10' cocok untuk warna biru dan oranye di gambar
 sns.barplot(data=df_grouped_pct_prop, x='weathersit', y='casual_pct', hue='day_type', palette='tab10', ax=ax)
-ax.set_xlabel('Kondisi Cuaca (weathersit)')
-ax.set_ylabel('Proporsi Penyewaan Kasual (%)')
+ax.set_xlabel('Kondisi Cuaca (weathersit)') # Sesuai gambar
+ax.set_ylabel('Proporsi Penyewaan Kasual (%)') # Sesuai gambar
 ax.set_title('Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari')
-ax.legend(title='Jenis Hari', loc='upper right')
+ax.legend(title='Jenis Hari', loc='upper right') # Sesuai gambar
 ax.tick_params(axis='x', rotation=0)
-ax.grid(False)
-ax.set_ylim(bottom=0, top=25)
+ax.grid(False) # Sesuai gambar, tidak ada grid
+ax.set_ylim(bottom=0, top=26) # Sesuaikan jika data max berbeda
+plt.tight_layout()
 st.pyplot(fig)
 
-# 4. Rata-rata Proporsi Penyewaan Terdaftar per Kondisi Cuaca dan Jenis Hari
+
+# 4. Rata-rata Proporsi Penyewaan Terdaftar per Kondisi Cuaca dan Jenis Hari (SESUAI image_61ca90.png)
 st.subheader("👥 Rata-rata Proporsi Pengguna Terdaftar per Kondisi Cuaca dan Jenis Hari")
 df_grouped_pct_prop['registered_pct'] = (df_grouped_pct_prop['registered'] / df_grouped_pct_prop['total']) * 100
 
 fig, ax = plt.subplots(figsize=(10, 6))
+# Palette 'tab10' cocok untuk warna biru dan oranye di gambar
 sns.barplot(data=df_grouped_pct_prop, x='weathersit', y='registered_pct', hue='day_type', palette='tab10', ax=ax)
-ax.set_xlabel('Kondisi Cuaca (weathersit)')
-ax.set_ylabel('Proporsi Penyewaan Terdaftar (%)')
+ax.set_xlabel('Kondisi Cuaca (weathersit)') # Sesuai gambar
+ax.set_ylabel('Proporsi Penyewaan Terdaftar (%)') # Sesuai gambar
 ax.set_title('Rata-rata Proporsi Penyewaan Terdaftar per Kondisi Cuaca dan Jenis Hari')
-ax.legend(title='Jenis Hari', loc='upper left')
+ax.legend(title='Jenis Hari', loc='upper left') # Sesuai gambar
 ax.tick_params(axis='x', rotation=0)
-ax.grid(False)
-ax.set_ylim(bottom=0, top=90)
+ax.grid(False) # Sesuai gambar, tidak ada grid
+ax.set_ylim(bottom=0, top=90) # Sesuaikan jika data max berbeda
+plt.tight_layout()
 st.pyplot(fig)
 
 
