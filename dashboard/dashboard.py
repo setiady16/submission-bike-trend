@@ -8,7 +8,7 @@ from datetime import date
 # Load dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("C:/Users/ADVAN/OneDrive/submission/submission/dashboard/main_data.csv")
+    df = pd.read_csv("main_data.csv")
     return df
 
 df = load_data()
@@ -100,46 +100,7 @@ plt.tight_layout() # Tambahkan ini untuk meniru tight_layout() dari notebook
 
 st.pyplot(fig)
 
-
-# --- Sisa visualisasi lainnya (dari kode Streamlit sebelumnya) ---
-# 2. Rata-rata Jumlah Pengguna Per Jam
-st.subheader("📈 Rata-rata Jumlah Pengguna Per Jam")
-hourly_trend = df_filtered.groupby('hr')['cnt'].mean().reset_index()
-fig, ax = plt.subplots(figsize=(12, 5))
-sns.lineplot(x='hr', y='cnt', data=hourly_trend, marker='o', color='dodgerblue', ax=ax)
-ax.set_xlabel("Jam")
-ax.set_ylabel("Rata-rata Pengguna")
-ax.set_title("Rata-rata Pengguna Sepeda Setiap Jam")
-ax.set_xticks(range(0, 24, 5))
-ax.grid(False)
-ax.set_ylim(bottom=0, top=400)
-st.pyplot(fig)
-
-
-# 3. Rata-rata Penggunaan Sepeda per Jam berdasarkan Cuaca
-st.subheader("🌤️ Rata-rata Penggunaan Sepeda per Jam berdasarkan Cuaca")
-hourly_weather = df_filtered.groupby(['hr', 'weathersit_label'])['cnt'].mean().reset_index()
-weather_order = ["Berkabut / Mendung", "Cerah / Berawan", "Hujan Ringan / Salju Ringan", "Hujan Lebat / Badai"]
-custom_palette_weather = {
-    "Berkabut / Mendung": '#FF8C00',
-    "Cerah / Berawan": '#1f77b4',
-    "Hujan Ringan / Salju Ringan": '#2ca02c',
-    "Hujan Lebat / Badai": '#DC143C'
-}
-fig, ax = plt.subplots(figsize=(12, 6))
-sns.lineplot(data=hourly_weather, x="hr", y="cnt", hue="weathersit_label", marker='o', ax=ax,
-             hue_order=weather_order, palette=custom_palette_weather)
-ax.set_xlabel("Jam")
-ax.set_ylabel("Rata-rata Pengguna")
-ax.set_title("Tren Penggunaan Sepeda per Jam & Cuaca")
-ax.legend(title="Cuaca", loc='upper left', frameon=True)
-ax.set_xticks(range(0, 24, 5))
-ax.grid(False)
-ax.set_ylim(bottom=0, top=550)
-st.pyplot(fig)
-
-
-# 4. Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca
+# 2. Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca
 st.subheader("🌦️ Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca")
 fig, ax = plt.subplots(figsize=(10, 6))
 sns.boxplot(data=df_filtered, x='weathersit', y='cnt', ax=ax, color='tab:blue')
@@ -150,63 +111,7 @@ ax.grid(False)
 ax.set_ylim(bottom=0, top=9000)
 st.pyplot(fig)
 
-
-# 5. Pengguna Casual vs Registered (Hari Kerja vs Libur) - Stacked Bar Plot
-st.subheader("👥 Total Pengguna Berdasarkan Hari Kerja vs Libur")
-grouped_data_day_type = df_filtered.groupby('workingday')[['casual', 'registered']].sum().reset_index()
-
-fig, ax = plt.subplots(figsize=(8, 6))
-bars_casual = ax.bar(grouped_data_day_type['workingday'], grouped_data_day_type['casual'],
-                     label='Casual', color='skyblue')
-bars_registered = ax.bar(grouped_data_day_type['workingday'], grouped_data_day_type['registered'],
-                       bottom=grouped_data_day_type['casual'], label='Registered', color='salmon')
-
-ax.set_title("Total Pengguna Berdasarkan Hari Kerja vs Libur")
-ax.set_xlabel("")
-ax.set_ylabel("Total Pengguna")
-ax.set_xticks([0, 1])
-ax.set_xticklabels(['Hari Libur', 'Hari Kerja'])
-ax.tick_params(axis='x', rotation=0)
-ax.legend(title='Jenis Pengguna', loc='upper left')
-ax.grid(False)
-ax.set_ylim(bottom=0, top=2500000)
-st.pyplot(fig)
-
-
-# 6. Pengaruh Suhu terhadap Penggunaan Sepeda
-st.subheader("🌡️ Pengaruh Suhu terhadap Penggunaan Sepeda")
-temp_bins = [0, 8.2, 16.4, 24.6, 32.8, 41]
-temp_labels = ['0-8°C', '8-16°C', '16-24°C', '24-32°C', '32-41°C']
-df_filtered['temp_group'] = pd.cut(df_filtered['temp'] * 41, bins=temp_bins, labels=temp_labels, right=False)
-
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(x='temp_group', y='cnt', data=df_filtered, estimator=sum, palette='Oranges', ax=ax, order=temp_labels)
-ax.set_xlabel("")
-ax.set_ylabel("Pengguna")
-ax.set_title("Pengaruh Suhu terhadap Jumlah Pengguna")
-ax.tick_params(axis='x', rotation=0)
-ax.grid(False)
-ax.set_ylim(bottom=0, top=1400000)
-st.pyplot(fig)
-
-
-# 7. Pengaruh Kelembaban terhadap Penggunaan Sepeda
-st.subheader("💧 Pengaruh Kelembaban terhadap Penggunaan Sepeda")
-hum_bins = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
-hum_labels = ['Sangat Kering', 'Kering', 'Normal', 'Lembab', 'Sangat Lembab']
-df_filtered['hum_group'] = pd.cut(df_filtered['hum'], bins=hum_bins, labels=hum_labels, right=False)
-
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(x='hum_group', y='cnt', data=df_filtered, estimator=sum, palette='BuGn', ax=ax, order=hum_labels)
-ax.set_xlabel("Kelompok Kelembaban")
-ax.set_ylabel("Jumlah Pengguna")
-ax.set_title("Pengaruh Kelembaban terhadap Jumlah Pengguna")
-ax.tick_params(axis='x', rotation=30)
-ax.grid(True, linestyle='--', alpha=0.6, axis='y')
-st.pyplot(fig)
-
-
-# 8. Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari
+# 3. Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari
 st.subheader("👥 Rata-rata Proporsi Penyewaan Kasual per Kondisi Cuaca dan Jenis Hari")
 df_grouped_pct_prop = df_filtered.groupby(['weathersit', 'day_type'])[['casual', 'registered']].sum().reset_index()
 df_grouped_pct_prop['total'] = df_grouped_pct_prop['casual'] + df_grouped_pct_prop['registered']
@@ -223,8 +128,7 @@ ax.grid(False)
 ax.set_ylim(bottom=0, top=25)
 st.pyplot(fig)
 
-
-# 9. Rata-rata Proporsi Penyewaan Terdaftar per Kondisi Cuaca dan Jenis Hari
+# 4. Rata-rata Proporsi Penyewaan Terdaftar per Kondisi Cuaca dan Jenis Hari
 st.subheader("👥 Rata-rata Proporsi Pengguna Terdaftar per Kondisi Cuaca dan Jenis Hari")
 df_grouped_pct_prop['registered_pct'] = (df_grouped_pct_prop['registered'] / df_grouped_pct_prop['total']) * 100
 
