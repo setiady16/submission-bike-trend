@@ -8,7 +8,7 @@ from datetime import date
 # Load dataset
 @st.cache_data
 def load_data():
-    df = pd.read_csv("C:/Users/ADVAN/OneDrive/submission/submission/dashboard/main_data.csv")
+    df = pd.read_csv("main_data.csv")
     return df
 
 df = load_data()
