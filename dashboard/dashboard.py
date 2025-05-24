@@ -59,20 +59,22 @@ st.metric("🚴 Total Pengguna Setelah Filter:", f"{df_filtered['cnt'].sum():,}"
 # --- VISUALISASI 1 ---
 st.subheader("🗓️ Tren Penyewaan Sepeda Bulanan Total berdasarkan Musim")
 
-df_agg_monthly = df_filtered.groupby(['year_month', 'season_label'], sort=False)[['cnt']].sum().reset_index()
+# Pakai 'season' (angka 1–4) seperti di notebook
+df_agg_monthly = df_filtered.groupby(['year_month', 'season'], sort=False)[['cnt']].sum().reset_index()
 df_agg_monthly['year_month_dt'] = pd.to_datetime(df_agg_monthly['year_month'])
 df_agg_monthly = df_agg_monthly.sort_values('year_month_dt')
 
 fig, ax = plt.subplots(figsize=(14, 6))
 sns.lineplot(
     data=df_agg_monthly,
-    x='year_month_dt',
+    x='year_month',
     y='cnt',
-    hue='season_label',
+    hue='season',
     marker='o',
     ax=ax,
-    alpha=0.8
+    errorbar=None  # hilangkan shading / CI
 )
+
 ax.set_title("Tren Penyewaan Sepeda Bulanan Total berdasarkan Musim")
 ax.set_xlabel("Bulan")
 ax.set_ylabel("Jumlah Penyewaan Sepeda")
@@ -81,6 +83,7 @@ ax.tick_params(axis='x', rotation=45)
 ax.grid(False)
 plt.tight_layout()
 st.pyplot(fig)
+
 
 # --- VISUALISASI 2 ---
 st.subheader("🌦️ Distribusi Penyewaan Sepeda Berdasarkan Kondisi Cuaca")
