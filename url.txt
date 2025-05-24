@@ -1,1 +1,1 @@
-https://setiady16-submission-bike-trend.streamlit.app/
+https://setiady16.streamlit.app/
